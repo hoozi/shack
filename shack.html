@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<title>shack</title>
+<meta name="description" content="">
+<meta name="keywords" content="">
+<link href="" rel="stylesheet">
+</head>
+<body>
+<script>
+;(function(window){
+
+	function Shack(options) {
+		return new Shack.init(options)
+	}
+
+	//interval   {Number}   间隔
+	//threshold  {Number}   阀值
+	//shackAfter {Function} 摇晃后的回调
+	var init = Shack.init = function(options) {
+		var noop = function(){},
+			_this = this;
+		this.options = {
+			interval:   100,
+			threshold:  800,
+			shackAfter: noop
+		}
+		for(var k in options) {
+			this._setOptions(k, options[k]);
+		}
+		this.lastTime = 0;
+		this.timer = null;
+		this.x = this.y = this.z = this.lastX = this.lastY = this.lastZ = this.speed = 0;
+
+		window.addEventListener("devicemotion",this._shackHandle(event, this),false);
+	}
+
+	init.prototype._setOptions = function(k, v) {
+		this.options[k] = v;
+	}
+
+	init.prototype._shackHandle = function(event, _this) {
+		var options = _this.options,
+			lastTime = _this.lastTime,
+			speed = _this.speed,
+			interval = options.interval,
+			shackAfter = options.shackAfter,
+			threshold = options.threshold,
+			x = _this.x,
+			y = _this.y,
+			z = _this.z,
+			lastX = _this.lastX,
+			lastY = _this.lastY,
+			lastZ = _this.lastZ,
+			timer = _this.timer,
+			diffTime, acceleration, curTime;
+		return function(event){
+			acceleration = event.accelerationIncludingGravity;
+			curTime = new Date().getTime();
+			if((diffTime = curTime-lastTime)>interval) {
+				lastTime = curTime;
+				x = acceleration.x;
+				y = acceleration.y;
+				z = acceleration.z;
+				speed = Math.abs(x+y+z-lastX-lastY-lastZ) / diffTime * 10000;
+				if(speed>threshold) {
+					if(timer) {
+						clearTimeout(timer);
+					}
+					timer = setTimeout(function(){
+						shackAfter.call(_this);
+					},500)
+				}
+
+				lastX = x;
+				lastY = y;
+				lastZ = z;
+			}
+		}
+	}
+
+	window.Shack = Shack;
+
+})(window)
+
+Shack({
+	shackAfter: function(s){
+		alert("shack!")
+	}
+})	
+</script> 
+</body>
+</html>
